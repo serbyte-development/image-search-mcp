@@ -42,6 +42,14 @@ cd stocky-mcp
 pip install -r requirements.txt
 ```
 
+### Development Checks
+
+Run the linter from the repo root:
+
+```bash
+python -m flake8 .
+```
+
 ### API Key Setup
 
 You'll need free API keys from each provider:
