@@ -420,6 +420,7 @@ class PixabayProvider(StockImageProvider):
                 "Provider must be used within async context manager"
             )
 
+        per_page = max(per_page, 3)
         sort = kwargs.get("sort", "relevant")
         order = "latest" if sort in ("newest", "latest") else "popular"
         params = {
