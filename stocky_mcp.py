@@ -35,6 +35,10 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# pycurl sends no User-Agent by default; Cloudflare-fronted hosts
+# (Pexels API, image CDNs) reject UA-less requests with error 1010.
+USER_AGENT = "StockyMCP/1.0 (+https://stocky-mcp.vercel.app)"
+
 
 def _response_preview(buffer: io.BytesIO, limit: int = 500) -> str:
     """Return a short, log-safe preview of an HTTP response body."""
@@ -154,6 +158,7 @@ class PexelsProvider(StockImageProvider):
 
             c.setopt(pycurl.URL, full_url)
             c.setopt(pycurl.WRITEDATA, buffer)
+            c.setopt(pycurl.USERAGENT, USER_AGENT)
             header_list = [f"{k}: {v}" for k, v in headers.items()]
             c.setopt(pycurl.HTTPHEADER, header_list)
             c.perform()
@@ -214,6 +219,7 @@ class PexelsProvider(StockImageProvider):
 
             c.setopt(pycurl.URL, url)
             c.setopt(pycurl.WRITEDATA, buffer)
+            c.setopt(pycurl.USERAGENT, USER_AGENT)
             header_list = [f"{k}: {v}" for k, v in headers.items()]
             c.setopt(pycurl.HTTPHEADER, header_list)
             c.perform()
@@ -307,6 +313,7 @@ class UnsplashProvider(StockImageProvider):
 
             c.setopt(pycurl.URL, full_url)
             c.setopt(pycurl.WRITEDATA, buffer)
+            c.setopt(pycurl.USERAGENT, USER_AGENT)
             header_list = [f"{k}: {v}" for k, v in headers.items()]
             c.setopt(pycurl.HTTPHEADER, header_list)
             c.perform()
@@ -371,6 +378,7 @@ class UnsplashProvider(StockImageProvider):
 
             c.setopt(pycurl.URL, url)
             c.setopt(pycurl.WRITEDATA, buffer)
+            c.setopt(pycurl.USERAGENT, USER_AGENT)
             header_list = [f"{k}: {v}" for k, v in headers.items()]
             c.setopt(pycurl.HTTPHEADER, header_list)
             c.perform()
@@ -503,6 +511,7 @@ class PixabayProvider(StockImageProvider):
         query_string = urllib.parse.urlencode(params)
         c.setopt(pycurl.URL, f"{self.BASE_URL}?{query_string}")
         c.setopt(pycurl.WRITEDATA, buffer)
+        c.setopt(pycurl.USERAGENT, USER_AGENT)
         c.perform()
 
         status_code = c.getinfo(pycurl.HTTP_CODE)
@@ -782,6 +791,7 @@ class StockImageManager:
             c = pycurl.Curl()
             c.setopt(pycurl.URL, image_url)
             c.setopt(pycurl.WRITEDATA, buffer)
+            c.setopt(pycurl.USERAGENT, USER_AGENT)
             c.setopt(pycurl.FOLLOWLOCATION, True)
             c.perform()
 
