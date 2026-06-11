@@ -36,6 +36,28 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+def _response_preview(buffer: io.BytesIO, limit: int = 500) -> str:
+    """Return a short, log-safe preview of an HTTP response body."""
+    body = buffer.getvalue().decode("utf-8", errors="replace").strip()
+    if not body:
+        return "<empty>"
+    if len(body) > limit:
+        return f"{body[:limit]}..."
+    return body
+
+
+def _log_http_error(provider: str, status_code: object,
+                    buffer: io.BytesIO, context: str) -> None:
+    """Log provider HTTP failures without including secrets or request URLs."""
+    logger.error(
+        "%s API error during %s: HTTP status %s. Response body: %s",
+        provider,
+        context,
+        status_code,
+        _response_preview(buffer),
+    )
+
+
 @dataclass
 class ImageResult:
     """Represents a single image search result with all metadata."""
@@ -139,7 +161,8 @@ class PexelsProvider(StockImageProvider):
             # Check status code
             status_code = c.getinfo(pycurl.HTTP_CODE)
             if status_code != 200:
-                logger.error(f"Pexels API error: HTTP status {status_code}")
+                _log_http_error("Pexels", status_code, buffer, "search")
+                c.close()
                 return []
 
             c.close()
@@ -198,7 +221,8 @@ class PexelsProvider(StockImageProvider):
             # Check status code
             status_code = c.getinfo(pycurl.HTTP_CODE)
             if status_code != 200:
-                logger.error(f"Pexels API error: HTTP status {status_code}")
+                _log_http_error("Pexels", status_code, buffer, "details")
+                c.close()
                 return None
 
             c.close()
@@ -290,7 +314,8 @@ class UnsplashProvider(StockImageProvider):
             # Check status code
             status_code = c.getinfo(pycurl.HTTP_CODE)
             if status_code != 200:
-                logger.error(f"Unsplash API error: HTTP status {status_code}")
+                _log_http_error("Unsplash", status_code, buffer, "search")
+                c.close()
                 return []
 
             c.close()
@@ -353,7 +378,8 @@ class UnsplashProvider(StockImageProvider):
             # Check status code
             status_code = c.getinfo(pycurl.HTTP_CODE)
             if status_code != 200:
-                logger.error(f"Unsplash API error: HTTP status {status_code}")
+                _log_http_error("Unsplash", status_code, buffer, "details")
+                c.close()
                 return None
 
             c.close()
@@ -483,7 +509,7 @@ class PixabayProvider(StockImageProvider):
         c.close()
 
         if status_code != 200:
-            logger.error(f"Pixabay API error: HTTP status {status_code}")
+            _log_http_error("Pixabay", status_code, buffer, "request")
             return {"hits": []}
 
         response_data = buffer.getvalue().decode("utf-8")
@@ -765,6 +791,15 @@ class StockImageManager:
             c.close()
 
             if status_code != 200:
+                logger.error(
+                    "Image download failed for %s at size %s: HTTP status "
+                    "%s, content type %s. Response body: %s",
+                    image_id,
+                    size,
+                    status_code,
+                    content_type,
+                    _response_preview(buffer),
+                )
                 return {
                     "error": f"Failed to download image: HTTP status {status_code}"}  # noqa: E501
 
