@@ -44,10 +44,16 @@ pip install -r requirements.txt
 
 ### Development Checks
 
-Run the linter from the repo root:
+Run lint and type checks from the repo root:
 
 ```bash
-python -m flake8 .
+make lint
+```
+
+That runs:
+
+```bash
+.venv/bin/python -m flake8 . && .venv/bin/python -m pyrefly check
 ```
 
 ### API Key Setup

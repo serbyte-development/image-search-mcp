@@ -10,7 +10,6 @@ import asyncio
 import json
 import os
 import sys
-from typing import List, Dict, Any
 from dotenv import load_dotenv
 
 # Add the current directory to the path
@@ -50,7 +49,6 @@ class StockyDemo:
         if pixabay_key:
             # We know pixabay_key is not None here due to the if check
             self.providers["pixabay"] = lambda: PixabayProvider(pixabay_key or "")
-
 
     def print_header(self, text: str):
         """Print a formatted header."""
@@ -93,12 +91,12 @@ class StockyDemo:
                         for i, image in enumerate(results, 1):
                             print(f"   {i}. {image.title or 'Untitled'} (ID: {image.id})")
                     else:
-                        print(f"   ⚠️  No results found")
+                        print("   ⚠️  No results found")
 
             except ValueError as e:
                 print(f"   ❌ Error: {e}")
                 print(
-                    f"      Please set {provider_name.upper()}_API_KEY in your .env file")  
+                    f"      Please set {provider_name.upper()}_API_KEY in your .env file")
             except Exception as e:
                 print(f"   ❌ Unexpected error: {e}")
 
