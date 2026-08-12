@@ -2,7 +2,8 @@
 
 import os
 
-from starlette.responses import JSONResponse
+from mcp.server.transport_security import TransportSecuritySettings
+from starlette.responses import JSONResponse, Response
 from starlette.routing import Route
 
 from stocky_mcp import StockyServer
@@ -16,8 +17,9 @@ def _env_list(name, defaults):
     return [item.strip() for item in raw_value.split(",") if item.strip()]
 
 
-server = StockyServer(
-    stateless_http=True,
+server = StockyServer()
+transport_security = TransportSecuritySettings(
+    enable_dns_rebinding_protection=True,
     allowed_hosts=_env_list(
         "STOCKY_ALLOWED_HOSTS",
         [
@@ -37,7 +39,11 @@ server = StockyServer(
         ],
     ),
 )
-app = server.mcp.streamable_http_app()
+app = server.mcp.streamable_http_app(
+    stateless_http=True,
+    json_response=True,
+    transport_security=transport_security,
+)
 
 
 async def health(_request):
@@ -49,4 +55,10 @@ async def health(_request):
     })
 
 
+async def reject_mcp_get(_request):
+    """Disable the optional long-lived SSE stream on serverless Vercel."""
+    return Response(status_code=405, headers={"Allow": "POST"})
+
+
+app.routes.insert(0, Route("/mcp", reject_mcp_get, methods=["GET"]))
 app.routes.insert(0, Route("/", health, methods=["GET"]))

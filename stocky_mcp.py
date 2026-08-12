@@ -11,6 +11,7 @@ import os
 import sys
 import urllib.parse
 import base64
+import asyncio
 import pycurl
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field, asdict
@@ -21,8 +22,7 @@ import json
 # Environment variables are handled by the MCP client
 
 try:
-    from mcp.server.fastmcp import FastMCP
-    from mcp.server.transport_security import TransportSecuritySettings
+    from mcp.server import MCPServer
 except ImportError:
     print("Error: MCP package not found. Please install it with: "
           "pip install mcp")
@@ -38,6 +38,9 @@ logger = logging.getLogger(__name__)
 # pycurl sends no User-Agent by default; Cloudflare-fronted hosts
 # (Pexels API, image CDNs) reject UA-less requests with error 1010.
 USER_AGENT = "StockyMCP/1.0 (+https://stocky-mcp.vercel.app)"
+SUPPORTED_PROVIDERS = ("pexels", "unsplash", "pixabay")
+HTTP_CONNECT_TIMEOUT_SECONDS = 5
+HTTP_TIMEOUT_SECONDS = 20
 
 
 def _response_preview(buffer: io.BytesIO, limit: int = 500) -> str:
@@ -60,6 +63,44 @@ def _log_http_error(provider: str, status_code: object,
         status_code,
         _response_preview(buffer),
     )
+
+
+def _request_json(url: str, provider: str, context: str,
+                  headers: Optional[Dict[str, str]] = None) -> Optional[Dict[str, Any]]:
+    """Fetch and decode a provider JSON response using bounded timeouts."""
+    buffer = io.BytesIO()
+    curl = pycurl.Curl()
+
+    try:
+        curl.setopt(pycurl.URL, url)
+        curl.setopt(pycurl.WRITEDATA, buffer)
+        curl.setopt(pycurl.USERAGENT, USER_AGENT)
+        curl.setopt(pycurl.CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_SECONDS)
+        curl.setopt(pycurl.TIMEOUT, HTTP_TIMEOUT_SECONDS)
+        if headers:
+            curl.setopt(
+                pycurl.HTTPHEADER,
+                [f"{key}: {value}" for key, value in headers.items()]
+            )
+
+        curl.perform()
+        status_code = curl.getinfo(pycurl.HTTP_CODE)
+    except pycurl.error as exc:
+        logger.error("%s API error during %s: %s", provider, context, exc)
+        return None
+    finally:
+        curl.close()
+
+    if status_code != 200:
+        _log_http_error(provider, status_code, buffer, context)
+        return None
+
+    try:
+        return json.loads(buffer.getvalue().decode("utf-8"))
+    except json.JSONDecodeError as exc:
+        logger.error("%s API returned invalid JSON during %s: %s",
+                     provider, context, exc)
+        return None
 
 
 @dataclass
@@ -147,36 +188,12 @@ class PexelsProvider(StockImageProvider):
             "page": page
         }
 
-        try:
-            # Use pycurl to make the request
-            buffer = io.BytesIO()
-            c = pycurl.Curl()
-
-            # Build URL with parameters
-            query_string = urllib.parse.urlencode(params)
-            full_url = f"{url}?{query_string}"
-
-            c.setopt(pycurl.URL, full_url)
-            c.setopt(pycurl.WRITEDATA, buffer)
-            c.setopt(pycurl.USERAGENT, USER_AGENT)
-            header_list = [f"{k}: {v}" for k, v in headers.items()]
-            c.setopt(pycurl.HTTPHEADER, header_list)
-            c.perform()
-
-            # Check status code
-            status_code = c.getinfo(pycurl.HTTP_CODE)
-            if status_code != 200:
-                _log_http_error("Pexels", status_code, buffer, "search")
-                c.close()
-                return []
-
-            c.close()
-
-            # Parse JSON response
-            response_data = buffer.getvalue().decode('utf-8')
-            data = json.loads(response_data)
-        except (pycurl.error, json.JSONDecodeError) as e:
-            logger.error(f"Pexels API error: {e}")
+        query_string = urllib.parse.urlencode(params)
+        full_url = f"{url}?{query_string}"
+        data = await asyncio.to_thread(
+            _request_json, full_url, "Pexels", "search", headers
+        )
+        if data is None:
             return []
 
         results = []
@@ -212,52 +229,27 @@ class PexelsProvider(StockImageProvider):
         url = f"https://api.pexels.com/v1/photos/{pexels_id}"
         headers = {"Authorization": self.api_key}
 
-        try:
-            # Use pycurl to make the request
-            buffer = io.BytesIO()
-            c = pycurl.Curl()
-
-            c.setopt(pycurl.URL, url)
-            c.setopt(pycurl.WRITEDATA, buffer)
-            c.setopt(pycurl.USERAGENT, USER_AGENT)
-            header_list = [f"{k}: {v}" for k, v in headers.items()]
-            c.setopt(pycurl.HTTPHEADER, header_list)
-            c.perform()
-
-            # Check status code
-            status_code = c.getinfo(pycurl.HTTP_CODE)
-            if status_code != 200:
-                _log_http_error("Pexels", status_code, buffer, "details")
-                c.close()
-                return None
-
-            c.close()
-
-            # Parse JSON response
-            response_data = buffer.getvalue().decode('utf-8')
-            photo = json.loads(response_data)
-
-            # Create attribution URL for Pexels
-            attribution_url = photo["url"]
-
-            return ImageResult(
-                id=f"pexels_{photo['id']}",
-                title=photo.get("alt", f"Photo by {photo['photographer']}"),
-                description=photo.get("alt", ""),
-                url=photo["src"]["large"],
-                thumbnail=photo["src"]["medium"],
-                width=photo["width"],
-                height=photo["height"],
-                photographer=photo["photographer"],
-                photographer_url=photo["photographer_url"],
-                source="Pexels",
-                license="Free to use, attribution appreciated",
-                attribution_url=attribution_url,
-                tags=[photo.get("alt", "").lower()] if photo.get("alt") else []
-            )
-        except pycurl.error as e:
-            logger.error(f"Pexels API error: {e}")
+        photo = await asyncio.to_thread(
+            _request_json, url, "Pexels", "details", headers
+        )
+        if photo is None:
             return None
+
+        return ImageResult(
+            id=f"pexels_{photo['id']}",
+            title=photo.get("alt", f"Photo by {photo['photographer']}"),
+            description=photo.get("alt", ""),
+            url=photo["src"]["large"],
+            thumbnail=photo["src"]["medium"],
+            width=photo["width"],
+            height=photo["height"],
+            photographer=photo["photographer"],
+            photographer_url=photo["photographer_url"],
+            source="Pexels",
+            license="Free to use, attribution appreciated",
+            attribution_url=photo["url"],
+            tags=[photo.get("alt", "").lower()] if photo.get("alt") else []
+        )
 
 
 class UnsplashProvider(StockImageProvider):
@@ -299,65 +291,41 @@ class UnsplashProvider(StockImageProvider):
         params = {
             "query": query,
             "per_page": per_page,
-            "page": page
+            "page": page,
+            "order_by": (
+                "latest"
+                if kwargs.get("sort") in ("newest", "latest")
+                else "relevant"
+            ),
         }
 
-        try:
-            # Use pycurl to make the request
-            buffer = io.BytesIO()
-            c = pycurl.Curl()
-
-            # Build URL with parameters
-            query_string = urllib.parse.urlencode(params)
-            full_url = f"{url}?{query_string}"
-
-            c.setopt(pycurl.URL, full_url)
-            c.setopt(pycurl.WRITEDATA, buffer)
-            c.setopt(pycurl.USERAGENT, USER_AGENT)
-            header_list = [f"{k}: {v}" for k, v in headers.items()]
-            c.setopt(pycurl.HTTPHEADER, header_list)
-            c.perform()
-
-            # Check status code
-            status_code = c.getinfo(pycurl.HTTP_CODE)
-            if status_code != 200:
-                _log_http_error("Unsplash", status_code, buffer, "search")
-                c.close()
-                return []
-
-            c.close()
-
-            # Parse JSON response
-            response_data = buffer.getvalue().decode('utf-8')
-            data = json.loads(response_data)
-
-            results = []
-            for photo in data.get("results", []):
-                # Create attribution URL for Unsplash
-                attribution_url = (
-                    f"https://unsplash.com/photos/{photo['id']}"
-                )
-
-                results.append(ImageResult(
-                    id=f"unsplash_{photo['id']}",
-                    title=(photo.get("description", "Untitled")
-                           or "Untitled"),
-                    description=photo.get("alt_description", ""),
-                    url=photo["urls"]["regular"],
-                    thumbnail=photo["urls"]["small"],
-                    width=photo["width"],
-                    height=photo["height"],
-                    photographer=photo["user"]["name"],
-                    photographer_url=photo["user"]["links"]["html"],
-                    source="Unsplash",
-                    license="Free to use under Unsplash License",
-                    attribution_url=attribution_url,
-                    tags=[tag["title"] for tag in photo.get("tags", [])]
-                ))
-            return results
-        except pycurl.error as e:
-            logger.error(f"Unsplash API error: {e}")
+        query_string = urllib.parse.urlencode(params)
+        full_url = f"{url}?{query_string}"
+        data = await asyncio.to_thread(
+            _request_json, full_url, "Unsplash", "search", headers
+        )
+        if data is None:
             return []
+
+        results = []
+        for photo in data.get("results", []):
+            attribution_url = f"https://unsplash.com/photos/{photo['id']}"
+            results.append(ImageResult(
+                id=f"unsplash_{photo['id']}",
+                title=(photo.get("description", "Untitled") or "Untitled"),
+                description=photo.get("alt_description", ""),
+                url=photo["urls"]["regular"],
+                thumbnail=photo["urls"]["small"],
+                width=photo["width"],
+                height=photo["height"],
+                photographer=photo["user"]["name"],
+                photographer_url=photo["user"]["links"]["html"],
+                source="Unsplash",
+                license="Free to use under Unsplash License",
+                attribution_url=attribution_url,
+                tags=[tag["title"] for tag in photo.get("tags", [])]
+            ))
+        return results
 
     async def get_details(self, image_id: str) -> Optional[ImageResult]:
         """Get details for a specific Unsplash image."""
@@ -371,55 +339,29 @@ class UnsplashProvider(StockImageProvider):
         url = f"https://api.unsplash.com/photos/{unsplash_id}"
         headers = {"Authorization": f"Client-ID {self.api_key}"}
 
-        try:
-            # Use pycurl to make the request
-            buffer = io.BytesIO()
-            c = pycurl.Curl()
-
-            c.setopt(pycurl.URL, url)
-            c.setopt(pycurl.WRITEDATA, buffer)
-            c.setopt(pycurl.USERAGENT, USER_AGENT)
-            header_list = [f"{k}: {v}" for k, v in headers.items()]
-            c.setopt(pycurl.HTTPHEADER, header_list)
-            c.perform()
-
-            # Check status code
-            status_code = c.getinfo(pycurl.HTTP_CODE)
-            if status_code != 200:
-                _log_http_error("Unsplash", status_code, buffer, "details")
-                c.close()
-                return None
-
-            c.close()
-
-            # Parse JSON response
-            response_data = buffer.getvalue().decode('utf-8')
-            photo = json.loads(response_data)
-
-            attribution_url = (
-                f"https://unsplash.com/photos/{photo['id']}"
-            )
-
-            return ImageResult(
-                id=f"unsplash_{photo['id']}",
-                title=(photo.get("description") or
-                       photo.get("alt_description") or
-                       f"Photo by {photo['user']['name']}"),
-                description=photo.get("description", ""),
-                url=photo["urls"]["full"],
-                thumbnail=photo["urls"]["regular"],
-                width=photo["width"],
-                height=photo["height"],
-                photographer=photo["user"]["name"],
-                photographer_url=photo["user"]["links"]["html"],
-                source="Unsplash",
-                license="Free to use under Unsplash License",
-                attribution_url=attribution_url,
-                tags=[tag["title"] for tag in photo.get("tags", [])]
-            )
-        except pycurl.error as e:
-            logger.error(f"Unsplash API error: {e}")
+        photo = await asyncio.to_thread(
+            _request_json, url, "Unsplash", "details", headers
+        )
+        if photo is None:
             return None
+
+        return ImageResult(
+            id=f"unsplash_{photo['id']}",
+            title=(photo.get("description") or
+                   photo.get("alt_description") or
+                   f"Photo by {photo['user']['name']}"),
+            description=photo.get("description", ""),
+            url=photo["urls"]["full"],
+            thumbnail=photo["urls"]["regular"],
+            width=photo["width"],
+            height=photo["height"],
+            photographer=photo["user"]["name"],
+            photographer_url=photo["user"]["links"]["html"],
+            source="Unsplash",
+            license="Free to use under Unsplash License",
+            attribution_url=f"https://unsplash.com/photos/{photo['id']}",
+            tags=[tag["title"] for tag in photo.get("tags", [])]
+        )
 
 
 class PixabayProvider(StockImageProvider):
@@ -454,7 +396,8 @@ class PixabayProvider(StockImageProvider):
                 "Provider must be used within async context manager"
             )
 
-        per_page = max(per_page, 3)
+        requested_per_page = per_page
+        api_per_page = max(per_page, 3)
         sort = kwargs.get("sort", "relevant")
         order = "latest" if sort in ("newest", "latest") else "popular"
         params = {
@@ -463,19 +406,19 @@ class PixabayProvider(StockImageProvider):
             "image_type": "photo",
             "safesearch": "true",
             "page": page,
-            "per_page": per_page,
+            "per_page": api_per_page,
             "order": order,
         }
 
         try:
-            data = self._request(params)
+            data = await asyncio.to_thread(self._request, params)
         except (pycurl.error, json.JSONDecodeError) as e:
             logger.error(f"Pixabay API error: {e}")
             return []
 
         return [
             self._image_result(hit)
-            for hit in data.get("hits", [])
+            for hit in data.get("hits", [])[:requested_per_page]
         ]
 
     async def get_details(self, image_id: str) -> Optional[ImageResult]:
@@ -494,7 +437,7 @@ class PixabayProvider(StockImageProvider):
         }
 
         try:
-            data = self._request(params)
+            data = await asyncio.to_thread(self._request, params)
         except (pycurl.error, json.JSONDecodeError) as e:
             logger.error(f"Pixabay API error: {e}")
             return None
@@ -506,23 +449,11 @@ class PixabayProvider(StockImageProvider):
 
     def _request(self, params: Dict[str, Any]) -> Dict[str, Any]:
         """Make a Pixabay API request and parse the JSON response."""
-        buffer = io.BytesIO()
-        c = pycurl.Curl()
         query_string = urllib.parse.urlencode(params)
-        c.setopt(pycurl.URL, f"{self.BASE_URL}?{query_string}")
-        c.setopt(pycurl.WRITEDATA, buffer)
-        c.setopt(pycurl.USERAGENT, USER_AGENT)
-        c.perform()
-
-        status_code = c.getinfo(pycurl.HTTP_CODE)
-        c.close()
-
-        if status_code != 200:
-            _log_http_error("Pixabay", status_code, buffer, "request")
-            return {"hits": []}
-
-        response_data = buffer.getvalue().decode("utf-8")
-        return json.loads(response_data)
+        data = _request_json(
+            f"{self.BASE_URL}?{query_string}", "Pixabay", "request"
+        )
+        return data if data is not None else {"hits": []}
 
     def _image_result(self, photo: Dict[str, Any]) -> ImageResult:
         """Convert a Pixabay API hit to Stocky's normalized image result."""
@@ -583,6 +514,50 @@ class StockImageManager:
         if pixabay_key:
             self.providers["pixabay"] = PixabayProvider(pixabay_key)
 
+    def _resolve_providers(
+            self, providers: Optional[List[str]]) -> Dict[str, Any]:
+        """Normalize and strictly validate requested provider names."""
+        if providers is None:
+            return {"providers": list(self.providers.keys())}
+
+        normalized = []
+        invalid = []
+        for provider in providers:
+            if not isinstance(provider, str):
+                invalid.append(str(provider))
+                continue
+
+            name = provider.strip().lower()
+            if name not in SUPPORTED_PROVIDERS:
+                invalid.append(provider)
+            elif name not in normalized:
+                normalized.append(name)
+
+        if invalid:
+            return {
+                "error": (
+                    f"Unknown provider(s): {', '.join(invalid)}. "
+                    f"Valid providers: {', '.join(SUPPORTED_PROVIDERS)}."
+                )
+            }
+
+        if not normalized:
+            return {"error": "At least one provider must be specified."}
+
+        unconfigured = [
+            provider for provider in normalized
+            if provider not in self.providers
+        ]
+        if unconfigured:
+            return {
+                "error": (
+                    f"Provider(s) not configured: {', '.join(unconfigured)}. "
+                    f"Available providers: {', '.join(self.providers) or 'none'}."
+                )
+            }
+
+        return {"providers": normalized}
+
     async def search(self, query: str, providers: Optional[List[str]] = None,
                      per_page: int = 20, page: int = 1, sort: str = "relevant",
                      include_attribution: Optional[bool] = None,
@@ -616,29 +591,16 @@ class StockImageManager:
             )
             return {"error": error_msg}
 
-        # Use all available providers if none specified
-        if providers is None:
-            providers = list(self.providers.keys())
-
-        # Filter to only available providers
-        available_providers = [
-            p for p in providers if p in self.providers
-        ]
-
-        if not available_providers:
-            return {
-                "error": (
-                    f"No available providers from: {', '.join(providers)}. "
-                    "Please check your configuration."
-                )
-            }
+        resolved = self._resolve_providers(providers)
+        if "error" in resolved:
+            return resolved
+        available_providers = resolved["providers"]
 
         # Determine if attribution links should be included
         # Priority: 1) Explicit parameter, 2) Environment variable setting
         show_attribution = include_attribution if include_attribution is not None else self.enable_attribution
 
-        results = {}
-        for provider_name in available_providers:
+        async def search_provider(provider_name: str):
             try:
                 provider = self.providers[provider_name]
                 async with provider:
@@ -652,10 +614,16 @@ class StockImageManager:
                         for result in provider_results:
                             result.attribution_url = None
 
-                    results[provider_name] = provider_results
+                    return provider_name, provider_results[:per_page]
             except Exception as e:
                 logger.error(f"Error searching {provider_name}: {e}")
-                results[provider_name] = []
+                return provider_name, []
+
+        provider_results = await asyncio.gather(*(
+            search_provider(provider_name)
+            for provider_name in available_providers
+        ))
+        results = dict(provider_results)
 
         return {
             "query": query,
@@ -793,6 +761,8 @@ class StockImageManager:
             c.setopt(pycurl.WRITEDATA, buffer)
             c.setopt(pycurl.USERAGENT, USER_AGENT)
             c.setopt(pycurl.FOLLOWLOCATION, True)
+            c.setopt(pycurl.CONNECTTIMEOUT, HTTP_CONNECT_TIMEOUT_SECONDS)
+            c.setopt(pycurl.TIMEOUT, 60)
             c.perform()
 
             # Get the content type and status code
@@ -868,26 +838,8 @@ class StockImageManager:
 class StockyServer:
     """Main MCP server for stock image searching."""
 
-    def __init__(
-        self,
-        *,
-        stateless_http: bool = False,
-        allowed_hosts: Optional[List[str]] = None,
-        allowed_origins: Optional[List[str]] = None,
-    ):
-        transport_security = None
-        if allowed_hosts is not None or allowed_origins is not None:
-            transport_security = TransportSecuritySettings(
-                enable_dns_rebinding_protection=True,
-                allowed_hosts=allowed_hosts or [],
-                allowed_origins=allowed_origins or [],
-            )
-
-        self.mcp = FastMCP(
-            "stocky",
-            stateless_http=stateless_http,
-            transport_security=transport_security,
-        )
+    def __init__(self):
+        self.mcp = MCPServer("stocky")
         self.manager = StockImageManager()
         self._setup_tools()
         self._setup_resources()
@@ -909,7 +861,10 @@ class StockyServer:
 
             Args:
                 query: Search query string
-                providers: List of specific providers to search
+                providers: Providers to search. Valid values are pexels,
+                    unsplash, and pixabay. Names are case-insensitive. If a
+                    provider is requested but invalid or unavailable, the
+                    search returns an error instead of silently substituting.
                 per_page: Number of results per page
                 page: Page number for pagination
                 sort_by: Sort order ('relevant', 'newest')
@@ -919,8 +874,8 @@ class StockyServer:
             Returns:
                 Search results with metadata
             """
-            if per_page > 50:
-                per_page = 50
+            per_page = max(1, min(per_page, 50))
+            page = max(1, page)
 
             if providers is None:
                 providers = list(self.manager.providers.keys())
@@ -931,6 +886,17 @@ class StockyServer:
             # method
             results_dict = await self.manager.search(
                 query, providers, per_page, page, sort_by, include_attribution)
+
+            if "error" in results_dict:
+                return {
+                    "error": results_dict["error"],
+                    "results": [],
+                    "total_results": 0,
+                    "query": query,
+                    "page": page,
+                    "per_page": per_page,
+                    "providers": [],
+                }
 
             # Convert results to the expected format
             if "results" in results_dict:
@@ -943,7 +909,8 @@ class StockyServer:
                 "total_results": len(all_results),
                 "query": query,
                 "page": page,
-                "per_page": per_page
+                "per_page": per_page,
+                "providers": results_dict.get("providers", []),
             }
 
         @self.mcp.tool()

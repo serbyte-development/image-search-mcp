@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://github.com/modelcontextprotocol)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -43,6 +43,12 @@ pip install -r requirements.txt
 ```
 
 ### Development Checks
+
+Install the development dependencies once:
+
+```bash
+pip install -r requirements-dev.txt
+```
 
 Run lint and type checks from the repo root:
 
@@ -246,7 +252,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 - Verify API keys are active and have not exceeded rate limits
 
 **Installation issues**
-- Ensure Python 3.8+ is installed
+- Ensure Python 3.10+ is installed
 - Try creating a virtual environment: `python -m venv venv`
 - Update pip: `pip install --upgrade pip`
 

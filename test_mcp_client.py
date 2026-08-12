@@ -1,132 +1,61 @@
 #!/usr/bin/env python3
-"""
-Test client for Stocky MCP server.
-This script tests the functionality of the Stocky MCP server by making requests to it.
-"""
+"""End-to-end smoke test using the MCP v2 client in process."""
 
 import asyncio
-import json
 
-# Import the correct client classes
-from mcp.client.session import ClientSession
+from dotenv import load_dotenv
+from mcp.client import Client
 
-
-async def start_server_process():
-    """Start the MCP server process in the background."""
-    # This is just a simulation since we already have a server running
-    print("Note: Using existing MCP server process")
-    return None  # We're not actually starting a new process
+from stocky_mcp import StockyServer
 
 
-async def test_search_images():
-    """Test the search_stock_images tool."""
-    print("Testing search_stock_images tool...")
-
-    # Create a client session for the local MCP server
-    session = ClientSession("stocky", "http://localhost:8080")
-    await session.initialize()
-
-    try:
-        # Get available tools
-        tools = await session.list_tools()
-        print(f"Available tools: {[tool.name for tool in tools]}")
-
-        # Test search with default parameters
-        print("\nSearching for 'mountain landscape'...")
-        result = await session.call_tool(
-            "search_stock_images",
-            {"query": "mountain landscape"}
-        )
-
-        # Print the number of results and first result details
-        if isinstance(result, list):
-            print(f"Found {len(result)} images")
-            if result:
-                first_image = result[0]
-                print("\nFirst image details:")
-                print(f"ID: {first_image.get('id')}")
-                print(f"Title: {first_image.get('title')}")
-                print(f"Source: {first_image.get('source')}")
-                print(f"URL: {first_image.get('url')}")
-        else:
-            print(f"Error: {result}")
-    finally:
-        await session.shutdown()
-
-
-async def test_get_image_details():
-    """Test the get_image_details tool."""
-    print("\nTesting get_image_details tool...")
-
-    # Create a client session for the local MCP server
-    session = ClientSession("stocky", "http://localhost:8080")
-    await session.initialize()
-
-    try:
-        # First search to get an image ID
-        search_result = await session.call_tool(
-            "search_stock_images",
-            {"query": "sunset", "per_page": 1}
-        )
-
-        if isinstance(search_result, list) and search_result:
-            image_id = search_result[0].get('id')
-            print(f"Getting details for image ID: {image_id}")
-
-            # Get details for the first image
-            details = await session.call_tool(
-                "get_image_details",
-                {"image_id": image_id}
-            )
-
-            print("\nImage details:")
-            print(json.dumps(details, indent=2))
-        else:
-            print("No images found to test get_image_details")
-    finally:
-        await session.shutdown()
-
-
-async def test_help_resource():
-    """Test the help resource."""
-    print("\nTesting help resource...")
-
-    # Create a client session for the local MCP server
-    session = ClientSession("stocky", "http://localhost:8080")
-    await session.initialize()
-
-    try:
-        # List available resources
-        resources = await session.list_resources()
-        print(f"Available resources: {[r.uri for r in resources]}")
-
-        # Get the help resource
-        help_text = await session.read_resource("stock-images://help")
-        print(f"Help resource retrieved: {len(help_text)} characters")
-        print("\nFirst 200 characters of help text:")
-        print(help_text[:200] + "...")
-    finally:
-        await session.shutdown()
+def _tool_payload(result):
+    """Return Stocky's structured tool payload."""
+    structured = result.structured_content or {}
+    return structured.get("result", structured)
 
 
 async def main():
-    """Run all tests."""
-    print("Starting Stocky MCP client tests...\n")
+    """Exercise discovery, tools, provider routing, and the help resource."""
+    load_dotenv()
+    server = StockyServer()
 
-    # Start the server process (in this case, we're using an existing one)
-    await start_server_process()
+    async with Client(server.mcp) as client:
+        print(f"Protocol: {client.protocol_version}")
 
-    try:
-        # Run the tests
-        await test_search_images()
-        await test_get_image_details()
-        await test_help_resource()
-        print("\nAll tests completed!")
-    except Exception as e:
-        print(f"\nError during tests: {e}")
-    finally:
-        # We're not terminating the server since we didn't start it
-        pass
+        tools = await client.list_tools()
+        print(f"Tools: {[tool.name for tool in tools.tools]}")
+
+        search = await client.call_tool(
+            "search_stock_images",
+            {
+                "query": "mountain landscape",
+                "providers": ["pexels"],
+                "per_page": 1,
+            },
+        )
+        search_payload = _tool_payload(search)
+        images = search_payload.get("results", [])
+        assert images, "Pexels search returned no images"
+        assert search_payload.get("providers") == ["pexels"]
+        assert {image["source"] for image in images} == {"Pexels"}
+        print(f"Search: {images[0]['id']} from {images[0]['source']}")
+
+        details = await client.call_tool(
+            "get_image_details",
+            {"image_id": images[0]["id"]},
+        )
+        details_payload = _tool_payload(details)
+        assert details_payload.get("source") == "Pexels"
+        print(f"Details: {details_payload['id']}")
+
+        resources = await client.list_resources()
+        uris = [str(resource.uri) for resource in resources.resources]
+        assert "stock-images://help" in uris
+
+        help_result = await client.read_resource("stock-images://help")
+        assert help_result.contents
+        print("Help resource: OK")
 
 
 if __name__ == "__main__":
