@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Stocky MCP Server - A friendly MCP server for searching royalty-free stock
-images.
+Image Search MCP Server - search stock images across multiple providers.
 
 This server provides tools to search for stock images from Pexels, Unsplash,
 and Pixabay.
@@ -37,7 +36,10 @@ logger = logging.getLogger(__name__)
 
 # pycurl sends no User-Agent by default; Cloudflare-fronted hosts
 # (Pexels API, image CDNs) reject UA-less requests with error 1010.
-USER_AGENT = "StockyMCP/1.0 (+https://stocky-mcp.vercel.app)"
+USER_AGENT = (
+    "ImageSearchMCP/1.0 "
+    "(+https://github.com/Serbyte-Development/image-search-mcp)"
+)
 SUPPORTED_PROVIDERS = ("pexels", "unsplash", "pixabay")
 HTTP_CONNECT_TIMEOUT_SECONDS = 5
 HTTP_TIMEOUT_SECONDS = 20
@@ -456,7 +458,7 @@ class PixabayProvider(StockImageProvider):
         return data if data is not None else {"hits": []}
 
     def _image_result(self, photo: Dict[str, Any]) -> ImageResult:
-        """Convert a Pixabay API hit to Stocky's normalized image result."""
+        """Convert a Pixabay API hit to the normalized image result."""
         tags = [
             tag.strip()
             for tag in photo.get("tags", "").split(",")
@@ -753,7 +755,7 @@ class StockImageManager:
             return {"error": "Could not determine image URL for download"}
 
         try:
-            logger.info(f"Stocky MCP server CWD at download: {os.getcwd()}")
+            logger.info(f"Image Search MCP server CWD at download: {os.getcwd()}")
             # Use pycurl to download the image
             buffer = io.BytesIO()
             c = pycurl.Curl()
@@ -835,11 +837,11 @@ class StockImageManager:
             return {"error": f"Unexpected error: {str(e)}"}
 
 
-class StockyServer:
+class ImageSearchServer:
     """Main MCP server for stock image searching."""
 
     def __init__(self):
-        self.mcp = MCPServer("stocky")
+        self.mcp = MCPServer("image-search")
         self.manager = StockImageManager()
         self._setup_tools()
         self._setup_resources()
@@ -944,10 +946,10 @@ class StockyServer:
                      Options: thumbnail, small, medium, large, original
                 output_path: Optional path to save the image locally.
                     NOTE: If a relative path is provided, it will be resolved
-                    from the Stocky MCP server's current working directory,
+                    from the Image Search MCP server's current working directory,
                     which may not be the project directory. To ensure the file
                     is saved in a specific location, use an absolute path
-                    (e.g., /home/matt/Dev/stocky/downloads/image.jpg).
+                    (e.g., /home/user/image-search-mcp/downloads/image.jpg).
 
             Returns:
                 Path to downloaded file or base64 data
@@ -962,12 +964,11 @@ class StockyServer:
 
         @self.mcp.resource("stock-images://help")
         async def help_resource() -> str:
-            """Provide help documentation for the Stocky MCP server."""
+            """Provide help documentation for the Image Search MCP server."""
             return """
-# Stocky MCP Server Help
+# Image Search MCP Server Help
 
-Welcome to Stocky! This MCP server helps you search for beautiful
-royalty-free stock images.
+Search stock images from Pexels, Unsplash, and Pixabay through MCP.
 
 ## Available Tools
 
@@ -1046,7 +1047,7 @@ download_image("pexels_123456", size="medium", output_path="/path/to/save.jpg")
 
 3. Run the server:
    ```bash
-   python stocky_mcp.py
+   python image_search_mcp.py
    ```
 
 ## Tips
@@ -1061,13 +1062,13 @@ Happy searching! 📸
 
     async def run(self):
         """Run the MCP server."""
-        logger.info("Starting Stocky MCP server...")
+        logger.info("Starting Image Search MCP server...")
         self.mcp.run()
 
 
 def main():
     """Main entry point for the MCP server."""
-    server = StockyServer()
+    server = ImageSearchServer()
     server.mcp.run()
 
 

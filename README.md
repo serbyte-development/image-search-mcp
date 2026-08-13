@@ -1,94 +1,71 @@
-# <div align="center">![Stocky Logo](STOCKY.png)<br/>Stocky<br/>*Find beautiful royalty-free stock images* 📸</div>
+# MCP Image Search Server for Unsplash, Pexels & Pixabay
 
-<div align="center">
+[![CI](https://github.com/Serbyte-Development/image-search-mcp/actions/workflows/python-lint.yml/badge.svg)](https://github.com/Serbyte-Development/image-search-mcp/actions/workflows/python-lint.yml)
+[![CodeQL](https://github.com/Serbyte-Development/image-search-mcp/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Serbyte-Development/image-search-mcp/actions/workflows/codeql-analysis.yml)
+[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
+[![MCP Python SDK 2.x](https://img.shields.io/badge/MCP%20Python%20SDK-2.x-5A45FF)](https://github.com/modelcontextprotocol/python-sdk)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![MCP Compatible](https://img.shields.io/badge/MCP-Compatible-green.svg)](https://github.com/modelcontextprotocol)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+**Image Search MCP** is a Model Context Protocol server for searching **Unsplash, Pexels, and Pixabay** from one MCP client. Search one provider or all configured providers concurrently, return normalized image metadata, inspect image details, and download results.
 
-</div>
+Use it as an **Unsplash MCP server**, **Pexels MCP server**, **Pixabay MCP server**, or one unified **MCP image search** tool.
 
-## ✨ Features
+<p align="center">
+  <img src="images/landscape-mountains.jpg" alt="Stock image result available through the MCP image search server" width="800">
+</p>
 
-- 🔍 **Multi-Provider Search** - Search across Pexels and Unsplash simultaneously
-- 📊 **Rich Metadata** - Get comprehensive image details including dimensions, photographer info, and licensing
-- 📄 **Pagination Support** - Browse through large result sets with ease
-- 🛡️ **Graceful Error Handling** - Robust error handling for API failures
-- ⚡ **Async Performance** - Lightning-fast concurrent API calls
-- 🎯 **Provider Flexibility** - Search specific providers or all at once
+## Features
 
-![Photography Example](images/photography-example1.jpg)
+- Search Unsplash, Pexels, and Pixabay through one MCP server
+- Query multiple configured providers concurrently
+- Filter searches to specific providers
+- Normalize results into one consistent image schema
+- Fetch detailed metadata for individual images
+- Download images or return base64 image data
+- Run locally over MCP or deploy with Streamable HTTP
+- Fail clearly when a requested provider is invalid or not configured
 
-**Beautiful stock photography at your fingertips**  
-Example image used for demonstration purposes
+## Quick Start
 
-![Mountain Landscape](images/landscape-mountains.jpg)
-*Stunning landscapes available through multiple providers*
+### 1. Clone and install
 
-Photo by [Simon Berger](https://unsplash.com/@simon_berger) on [Unsplash](https://unsplash.com/photos/twukN12EN7c)
-
-## 🚀 Quick Start
-
-### Installation
-
-1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/stocky-mcp.git
-cd stocky-mcp
-```
+git clone https://github.com/Serbyte-Development/image-search-mcp.git
+cd image-search-mcp
 
-2. Install dependencies:
-```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Development Checks
+### 2. Get provider API keys
 
-Install the development dependencies once:
+Configure one or more of these environment variables:
 
-```bash
-pip install -r requirements-dev.txt
+```text
+PEXELS_API_KEY
+UNSPLASH_ACCESS_KEY
+PIXABAY_API_KEY
 ```
 
-Run lint and type checks from the repo root:
+API keys are available from:
 
-```bash
-make lint
-```
+- Pexels: https://www.pexels.com/api/
+- Unsplash: https://unsplash.com/developers
+- Pixabay: https://pixabay.com/api/docs/
 
-That runs:
+You only need keys for the providers you want to use.
 
-```bash
-.venv/bin/python -m flake8 . && .venv/bin/python -m pyrefly check
-```
-
-### API Key Setup
-
-You'll need free API keys from each provider:
-
-1. **Pexels** 📷 - Get your key at [pexels.com/api](https://www.pexels.com/api/)
-2. **Unsplash** 🌅 - Sign up at [unsplash.com/developers](https://unsplash.com/developers)
-3. **Pixabay** 🖼️ - Get your key at [pixabay.com/api/docs](https://pixabay.com/api/docs/)
-
-
-### API Key Configuration
-
-You'll need to configure your API keys when setting up the MCP server. These keys are used to authenticate with the stock image providers.
-
-### Running as an MCP Server
-
-Stocky is designed to be run as an MCP (Model Context Protocol) server, not as a standalone application. It should be configured in your MCP client configuration.
-
-## 🔧 MCP Client Configuration
-
-Add Stocky to your MCP client configuration:
+### 3. Add the MCP server to your client
 
 ```json
 {
   "mcpServers": {
-    "stocky": {
-      "command": "python",
-      "args": ["/path/to/stocky_mcp.py"],
+    "image-search": {
+      "command": "/absolute/path/to/image-search-mcp/.venv/bin/python",
+      "args": [
+        "/absolute/path/to/image-search-mcp/image_search_mcp.py"
+      ],
       "env": {
         "PEXELS_API_KEY": "your_pexels_key",
         "UNSPLASH_ACCESS_KEY": "your_unsplash_key",
@@ -99,172 +76,125 @@ Add Stocky to your MCP client configuration:
 }
 ```
 
-## Deploying on Vercel
+Restart your MCP client after saving the configuration.
 
-This repo also exposes a no-auth Streamable HTTP MCP server for Vercel.
+## MCP Tools
 
-1. Set these Vercel environment variables:
-```bash
-PEXELS_API_KEY=your_pexels_key
-UNSPLASH_ACCESS_KEY=your_unsplash_key
-PIXABAY_API_KEY=your_pixabay_key
+### `search_stock_images`
+
+Search one or more configured providers.
+
+Parameters:
+
+- `query` - search query
+- `providers` - optional list containing `pexels`, `unsplash`, and/or `pixabay`
+- `per_page` - results per provider, clamped to 1-50
+- `page` - page number
+- `sort_by` - `relevant` or `newest`
+- `include_attribution` - include provider attribution links when available
+
+Example:
+
+```json
+{
+  "query": "modern office interior",
+  "providers": ["unsplash", "pexels"],
+  "per_page": 10
+}
 ```
 
-2. Deploy the repo to Vercel.
+### `get_image_details`
 
-3. Connect MCP clients to:
+Fetch detailed metadata for a provider-prefixed image ID such as `pexels_123456`.
+
+### `download_image`
+
+Download an image by ID. Supported size values are `thumbnail`, `small`, `medium`, `large`, and `original`.
+
+If `output_path` is omitted, the tool returns base64 image data instead of writing a file.
+
+## Result Format
+
+Search results are normalized across providers and include fields such as:
+
+```json
+{
+  "id": "pexels_123456",
+  "title": "Example image",
+  "url": "https://...",
+  "thumbnail": "https://...",
+  "width": 1920,
+  "height": 1080,
+  "photographer": "Photographer Name",
+  "source": "Pexels",
+  "license": "Provider license",
+  "tags": []
+}
+```
+
+## Run from the CLI
+
+Install the local command:
+
+```bash
+pip install -e .
+```
+
+Then run:
+
+```bash
+image-search-mcp
+```
+
+## Deploy with Streamable HTTP
+
+`app.py` exposes a stateless Streamable HTTP MCP endpoint suitable for Vercel.
+
+Set your provider API keys in the deployment environment, deploy the repository, then connect MCP clients to:
+
 ```text
 https://your-project.vercel.app/mcp
 ```
 
-The root URL returns a small health response. The `/mcp` route is the MCP
-endpoint. Because this deployment has no auth, anyone with the URL can use the
-server and spend requests against your provider API keys.
+The example deployment does not add authentication. If you expose an MCP endpoint publicly, add appropriate access controls or expect requests to consume your provider API quotas.
 
-## 📖 Usage Examples
+Optional transport security settings:
 
-<div align="center">
-<img src="images/photography-example2.jpg" alt="Stock Photography Example" width="600">
-<p><em>Find the perfect image for your project</em></p>
-</div>
-
-### Searching for Images
-
-Search across all providers:
-```python
-results = await search_stock_images("sunset beach")
+```text
+IMAGE_SEARCH_MCP_ALLOWED_HOSTS
+IMAGE_SEARCH_MCP_ALLOWED_ORIGINS
 ```
 
-Search specific providers:
-```python
-results = await search_stock_images(
-    query="mountain landscape",
-    providers=["pexels", "unsplash", "pixabay"],
-    per_page=30,
-    page=1
-)
+Both accept comma-separated values.
+
+## Development
+
+Install development dependencies:
+
+```bash
+pip install -r requirements-dev.txt
 ```
 
-### Getting Image Details
+Run lint, type checks, and unit tests:
 
-```python
-details = await get_image_details("unsplash_abc123xyz")
+```bash
+make check PYTHON=.venv/bin/python
 ```
 
-### Downloading Images
+The repository also runs CI and CodeQL on pushes and pull requests to `main`.
 
-```python
-# Download and save to disk
-result = await download_image(
-    image_id="pexels_123456", 
-    size="medium", 
-    output_path="/path/to/save.jpg"
-)
+## Image Licensing
 
-# Get base64-encoded image data
-result = await download_image(
-    image_id="unsplash_abc123", 
-    size="original"
-)
-```
+This project is MIT licensed, but images returned by the providers are governed by each provider's own current license and API terms. Review the applicable provider terms before using downloaded content in production.
 
-## 🛠️ Tools Documentation
+## Contributing
 
-### `search_stock_images`
+See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Search for royalty-free stock images across multiple providers.
+## Security
 
-**Parameters:**
-- `query` (str, required) - Search terms for finding images
-- `providers` (list, optional) - List of providers to search: `["pexels", "unsplash", "pixabay"]`
-- `per_page` (int, optional) - Results per page, max 50 (default: 20)
-- `page` (int, optional) - Page number for pagination (default: 1)
-- `sort_by` (str, optional) - Sort results by "relevance" or "newest"
+See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 
-**Returns:** List of image results with metadata
+## License
 
-### `get_image_details`
-
-Get detailed information about a specific image.
-
-**Parameters:**
-- `image_id` (str, required) - Image ID in format `provider_id` (e.g., `pexels_123456`)
-
-**Returns:** Detailed image information including full metadata
-
-### `download_image`
-
-Download an image to local storage or get base64 encoded data.
-
-**Parameters:**
-- `image_id` (str, required) - Image ID in format `provider_id` (e.g., `pexels_123456`)
-- `size` (str, optional) - Image size variant to download (default: "original")
-  - Options: thumbnail, small, medium, large, original
-- `output_path` (str, optional) - Path to save the image locally
-  - If not provided, returns base64 encoded image data
-
-**Returns:** Dictionary with download information or error
-
-## 📄 License Information
-
-<div align="center">
-<img src="images/photography-example3.jpg" alt="License Information" width="600">
-<p><em>Royalty-free images for your creative projects</em></p>
-</div>
-
-All images returned by Stocky are free to use:
-
-- **Pexels** ✅ - Free for commercial and personal use, no attribution required
-- **Unsplash** ✅ - Free under the Unsplash License
-- **Pixabay** ✅ - Free under the Pixabay Content License
-
-
-Always check the specific license for each image before use in production.
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## 🙏 Acknowledgments
-
-- Thanks to [Pexels](https://www.pexels.com), [Unsplash](https://unsplash.com), and [Pixabay](https://pixabay.com) for providing free APIs
-- Built with the [Model Context Protocol](https://github.com/modelcontextprotocol)
-- Created with ❤️ for the developer community
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**"API key not found" error**
-- Ensure your `.env` file exists and contains valid API keys
-- Check that environment variables are properly loaded
-- Verify API key names match exactly (case-sensitive)
-
-**No results returned**
-- Try different search terms
-- Check your internet connection
-- Verify API keys are active and have not exceeded rate limits
-
-**Installation issues**
-- Ensure Python 3.10+ is installed
-- Try creating a virtual environment: `python -m venv venv`
-- Update pip: `pip install --upgrade pip`
-
-### Rate Limiting
-
-Each provider has different rate limits:
-- **Pexels**: 200 requests per hour
-- **Unsplash**: 50 requests per hour (demo), 5000 per hour (production)
-
-
----
-
-<div align="center">
-Made with 💜 by the Stocky Team
-</div>
+MIT - see [LICENSE](LICENSE).

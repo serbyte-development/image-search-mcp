@@ -1,9 +1,9 @@
 {
   "mcpServers": {
-    "stocky": {
+    "image-search": {
       "command": "python",
       "args": [
-        "/path/to/stocky/stocky_mcp.py"
+        "/path/to/image-search-mcp/image_search_mcp.py"
       ],
       "env": {
         "PEXELS_API_KEY": "your_pexels_api_key_here",

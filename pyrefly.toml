@@ -1,4 +1,4 @@
 project-includes = [
     "app.py",
-    "stocky_mcp.py",
+    "image_search_mcp.py",
 ]

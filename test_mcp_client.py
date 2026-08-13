@@ -6,11 +6,11 @@ import asyncio
 from dotenv import load_dotenv
 from mcp.client import Client
 
-from stocky_mcp import StockyServer
+from image_search_mcp import ImageSearchServer
 
 
 def _tool_payload(result):
-    """Return Stocky's structured tool payload."""
+    """Return Image Search MCP's structured tool payload."""
     structured = result.structured_content or {}
     return structured.get("result", structured)
 
@@ -18,7 +18,7 @@ def _tool_payload(result):
 async def main():
     """Exercise discovery, tools, provider routing, and the help resource."""
     load_dotenv()
-    server = StockyServer()
+    server = ImageSearchServer()
 
     async with Client(server.mcp) as client:
         print(f"Protocol: {client.protocol_version}")

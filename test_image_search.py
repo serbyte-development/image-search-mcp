@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""Test script for Stocky MCP Server."""
+"""Test script for the Image Search MCP server."""
 
-from stocky_mcp import (
+from image_search_mcp import (
     PexelsProvider,
     PixabayProvider,
     UnsplashProvider,
@@ -13,12 +13,12 @@ import sys
 import asyncio
 from dotenv import load_dotenv
 
-# Add the parent directory to sys.path to import stocky_mcp
+# Add the parent directory to sys.path to import image_search_mcp
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-class StockyTests:
-    """Test suite for Stocky MCP Server."""
+class ImageSearchTests:
+    """Test suite for the Image Search MCP server."""
 
     def __init__(self):
         """Initialize the test suite."""
@@ -353,17 +353,17 @@ class StockyTests:
         print("\n" + "=" * 50 + "\n")
 
         if self.failed == 0:
-            print("✨ All tests passed! Stocky is ready to use.")
+            print("✨ All tests passed! Image Search MCP is ready to use.")
         else:
             print("⚠️  Some tests failed. Please check the errors above.")
 
 
 async def main():
     """Run the tests."""
-    print("🧪 Starting Stocky MCP Server Tests")
+    print("🧪 Starting Image Search MCP MCP Server Tests")
     print("=" * 50)
 
-    tests = StockyTests()
+    tests = ImageSearchTests()
     await tests.run_all_tests()
 
 

@@ -1,9 +1,9 @@
-"""Focused unit tests for Stocky's provider selection and search manager."""
+"""Focused unit tests for Image Search MCP's provider selection and search manager."""
 
 import asyncio
 import unittest
 
-from stocky_mcp import ImageResult, StockImageManager, StockImageProvider
+from image_search_mcp import ImageResult, StockImageManager, StockImageProvider
 
 
 class FakeProvider(StockImageProvider):

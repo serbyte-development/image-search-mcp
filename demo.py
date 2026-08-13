@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Demo script for Stocky MCP Server.
+Demo script for the Image Search MCP server.
 
-This script demonstrates the usage of Stocky's functionality through direct API calls.
-Note: In production, Stocky would be used through the MCP protocol.
+This script demonstrates the usage of Image Search MCP's functionality through direct API calls.
+Note: In production, Image Search MCP would be used through the MCP protocol.
 """
 
 import asyncio
@@ -16,19 +16,19 @@ from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 try:
-    from stocky_mcp import (
+    from image_search_mcp import (
         PexelsProvider,
         PixabayProvider,
         UnsplashProvider,
         ImageResult,
     )
 except ImportError:
-    print("Error: Could not import stocky_mcp. Make sure it's in the same directory.")
+    print("Error: Could not import image_search_mcp. Make sure it's in the same directory.")
     sys.exit(1)
 
 
-class StockyDemo:
-    """Demo class for showcasing Stocky functionality."""
+class ImageSearchDemo:
+    """Demo class for showcasing Image Search MCP functionality."""
 
     def __init__(self):
         load_dotenv()
@@ -283,9 +283,9 @@ class StockyDemo:
 
 async def interactive_menu():
     """Run an interactive demo menu."""
-    demo = StockyDemo()
+    demo = ImageSearchDemo()
 
-    print("\n🎨 Welcome to Stocky Demo!")
+    print("\n🎨 Welcome to Image Search MCP Demo!")
     print("=" * 60)
 
     while True:
@@ -302,7 +302,7 @@ async def interactive_menu():
         choice = input("\nSelect option (0-7): ").strip()
 
         if choice == "0":
-            print("\n👋 Thanks for trying Stocky!")
+            print("\n👋 Thanks for trying Image Search MCP!")
             break
 
         elif choice == "1":
@@ -359,9 +359,9 @@ async def interactive_menu():
 
 async def automated_demo():
     """Run automated demo showcasing all features."""
-    demo = StockyDemo()
+    demo = ImageSearchDemo()
 
-    print("\n🎬 Running Automated Stocky Demo")
+    print("\n🎬 Running Automated Image Search MCP Demo")
     print("=" * 60)
 
     # Demo 1: Search all providers
@@ -392,7 +392,7 @@ async def main():
 
 
 if __name__ == "__main__":
-    print("🚀 Stocky Demo Script")
+    print("🚀 Image Search MCP Demo Script")
     print("Run with --auto flag for automated demo")
     print("Or run without flags for interactive menu")
 

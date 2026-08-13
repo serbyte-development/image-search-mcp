@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "image-search-mcp"
+version = "1.0.0"
+description = "MCP image search server for Unsplash, Pexels, and Pixabay"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+authors = [
+    { name = "Serbyte Development" },
+]
+keywords = [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "image-search",
+    "stock-images",
+    "unsplash",
+    "pexels",
+    "pixabay",
+    "royalty-free",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "mcp>=2.0.0,<3.0.0",
+    "pycurl>=7.45.0",
+]
+
+[project.scripts]
+image-search-mcp = "image_search_mcp:main"
+
+[project.urls]
+Repository = "https://github.com/Serbyte-Development/image-search-mcp"
+Issues = "https://github.com/Serbyte-Development/image-search-mcp/issues"
+
+[tool.setuptools]
+py-modules = ["image_search_mcp"]
