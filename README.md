@@ -25,7 +25,13 @@ Use it as an **Unsplash MCP server**, **Pexels MCP server**, **Pixabay MCP serve
 - Run locally over MCP or deploy with Streamable HTTP
 - Fail clearly when a requested provider is invalid or not configured
 
-## Quick Start
+## Getting Started
+
+### Have an AI agent install it
+
+Give your coding agent or AI assistant this install skill and let it configure the MCP for you:
+
+[`skills/install-mcp/SKILL.md`](skills/install-mcp/SKILL.md)
 
 ### 1. Clone and install
 
