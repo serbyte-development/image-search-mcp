@@ -3,7 +3,7 @@ requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "image-search-mcp"
+name = "serbyte-image-search-mcp"
 version = "1.0.0"
 description = "MCP image search server for Unsplash, Pexels, and Pixabay"
 readme = "README.md"

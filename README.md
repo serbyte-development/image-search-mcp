@@ -204,3 +204,5 @@ See [SECURITY.md](SECURITY.md) for vulnerability reporting.
 ## License
 
 MIT - see [LICENSE](LICENSE).
+
+Developed & maintained by [Serbyte Development](https://www.serbyte.net/).
