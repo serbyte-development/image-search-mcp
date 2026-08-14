@@ -1,0 +1,44 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.serbyte-development/image-search-mcp",
+  "title": "Image Search MCP",
+  "description": "Search Unsplash, Pexels, and Pixabay from one MCP server.",
+  "repository": {
+    "url": "https://github.com/serbyte-development/image-search-mcp",
+    "source": "github"
+  },
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "serbyte-image-search-mcp",
+      "version": "1.0.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "PEXELS_API_KEY",
+          "description": "Pexels API key. Configure at least one image provider key.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "UNSPLASH_ACCESS_KEY",
+          "description": "Unsplash access key. Configure at least one image provider key.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "PIXABAY_API_KEY",
+          "description": "Pixabay API key. Configure at least one image provider key.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        }
+      ]
+    }
+  ]
+}

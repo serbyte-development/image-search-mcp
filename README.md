@@ -1,5 +1,7 @@
 # MCP Image Search Server for Unsplash, Pexels & Pixabay
 
+<!-- mcp-name: io.github.serbyte-development/image-search-mcp -->
+
 [![CI](https://github.com/Serbyte-Development/image-search-mcp/actions/workflows/python-lint.yml/badge.svg)](https://github.com/Serbyte-Development/image-search-mcp/actions/workflows/python-lint.yml)
 [![CodeQL](https://github.com/Serbyte-Development/image-search-mcp/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/Serbyte-Development/image-search-mcp/actions/workflows/codeql-analysis.yml)
 [![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/)
@@ -38,7 +40,7 @@ For agents that support reusable skills, the full install workflow is also avail
 One command with `pipx`:
 
 ```bash
-pipx install git+https://github.com/Serbyte-Development/image-search-mcp.git
+pipx install --backend pip git+https://github.com/Serbyte-Development/image-search-mcp.git
 ```
 
 After the Homebrew formula is published, macOS/Linux users can instead install with:

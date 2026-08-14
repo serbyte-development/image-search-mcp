@@ -8,7 +8,7 @@ https://github.com/Serbyte-Development/image-search-mcp
 
 Detect my operating system and MCP client. Prefer the simplest packaged local install:
 - Homebrew: brew install Serbyte-Development/tap/image-search-mcp
-- Otherwise: pipx install git+https://github.com/Serbyte-Development/image-search-mcp.git
+- Otherwise: pipx install --backend pip git+https://github.com/Serbyte-Development/image-search-mcp.git
 
 Ask me which provider API keys I want to configure. At least one is required:
 PEXELS_API_KEY, UNSPLASH_ACCESS_KEY, PIXABAY_API_KEY.

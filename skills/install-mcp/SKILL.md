@@ -23,7 +23,7 @@ Install the MCP server locally, configure provider API keys, add it to the user'
    If Homebrew is unavailable or the formula has not been published yet, use:
 
    ```bash
-   pipx install git+https://github.com/Serbyte-Development/image-search-mcp.git
+   pipx install --backend pip git+https://github.com/Serbyte-Development/image-search-mcp.git
    ```
 
    Fall back to cloning + a virtual environment only if neither packaged path is available.

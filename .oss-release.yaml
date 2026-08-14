@@ -1,0 +1,16 @@
+version: 1
+repository: Serbyte-Development/image-search-mcp
+branch: main
+targets:
+  - github
+  - homebrew
+github:
+  tagPrefix: v
+  assets: []
+pypi:
+  packageDir: .
+homebrew:
+  formulaFile: Formula/image-search-mcp.rb
+  formulaName: image-search-mcp.rb
+mcp_registry:
+  serverFile: server.json
