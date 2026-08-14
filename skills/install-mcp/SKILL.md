@@ -14,17 +14,21 @@ Install the MCP server locally, configure provider API keys, add it to the user'
 ## Instructions
 
 1. Determine the user's operating system and MCP client from context or local inspection when possible. Ask only if it cannot be determined.
-2. Clone the repository into a sensible local tools directory. If it already exists, reuse it rather than cloning a second copy.
-3. Create a Python virtual environment with Python 3.10 or newer and install the project:
+2. Prefer a packaged install instead of cloning the repository:
 
    ```bash
-   python -m venv .venv
-   .venv/bin/python -m pip install -e .
+   brew install Serbyte-Development/tap/image-search-mcp
    ```
 
-   On Windows, use `.venv\\Scripts\\python.exe` instead.
+   If Homebrew is unavailable or the formula has not been published yet, use:
 
-4. Ask the user for whichever provider API keys they want to use. At least one provider must be configured:
+   ```bash
+   pipx install git+https://github.com/Serbyte-Development/image-search-mcp.git
+   ```
+
+   Fall back to cloning + a virtual environment only if neither packaged path is available.
+
+3. Ask the user for whichever provider API keys they want to use. At least one provider must be configured:
 
    - `PEXELS_API_KEY`
    - `UNSPLASH_ACCESS_KEY`
@@ -32,7 +36,7 @@ Install the MCP server locally, configure provider API keys, add it to the user'
 
    Never print, commit, or expose secret values.
 
-5. Configure the user's MCP client to launch `image_search_mcp.py` with the virtual-environment Python and pass the provider keys as environment variables. Use absolute paths.
+4. Configure the user's MCP client to launch the installed `image-search-mcp` command and pass the provider keys as environment variables.
 
    Example configuration shape:
 
@@ -40,8 +44,7 @@ Install the MCP server locally, configure provider API keys, add it to the user'
    {
      "mcpServers": {
        "image-search": {
-         "command": "/absolute/path/to/image-search-mcp/.venv/bin/python",
-         "args": ["/absolute/path/to/image-search-mcp/image_search_mcp.py"],
+         "command": "image-search-mcp",
          "env": {
            "PEXELS_API_KEY": "...",
            "UNSPLASH_ACCESS_KEY": "...",
@@ -52,16 +55,16 @@ Install the MCP server locally, configure provider API keys, add it to the user'
    }
    ```
 
-   Only include keys the user actually configured.
+   Only include keys the user actually configured. If the client requires a remote MCP endpoint instead of stdio, help the user deploy their own copy to Vercel, configure the provider keys as Vercel environment variables, and connect to `https://<project>.vercel.app/mcp`. Do not use the maintainer's deployment. Verify the endpoint after deployment; if host validation returns HTTP 421, expose Vercel system environment variables or set `IMAGE_SEARCH_MCP_ALLOWED_HOSTS` to the deployment host.
 
-6. Restart or reload the MCP client if required.
-7. Verify the server by listing MCP tools. Expected tools:
+5. Restart or reload the MCP client if required.
+6. Verify the server by listing MCP tools. Expected tools:
 
    - `search_stock_images`
    - `get_image_details`
    - `download_image`
 
-8. Run one small image search against a configured provider to confirm end-to-end functionality.
+7. Run one small image search against a configured provider to confirm end-to-end functionality.
 
 ## Rules
 

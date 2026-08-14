@@ -1,4 +1,4 @@
-"""Vercel ASGI entrypoint for the public image search MCP server."""
+"""Vercel ASGI entrypoint for a self-hosted image search MCP server."""
 
 import os
 
@@ -17,16 +17,25 @@ def _env_list(name, defaults):
     return [item.strip() for item in raw_value.split(",") if item.strip()]
 
 
+def _default_allowed_hosts():
+    hosts = ["127.0.0.1:*", "localhost:*"]
+    for name in (
+        "VERCEL_PROJECT_PRODUCTION_URL",
+        "VERCEL_URL",
+        "VERCEL_BRANCH_URL",
+    ):
+        value = os.getenv(name)
+        if value and value not in hosts:
+            hosts.append(value)
+    return hosts
+
+
 server = ImageSearchServer()
 transport_security = TransportSecuritySettings(
     enable_dns_rebinding_protection=True,
     allowed_hosts=_env_list(
         "IMAGE_SEARCH_MCP_ALLOWED_HOSTS",
-        [
-            "stocky-mcp.vercel.app",
-            "127.0.0.1:*",
-            "localhost:*",
-        ],
+        _default_allowed_hosts(),
     ),
     allowed_origins=_env_list(
         "IMAGE_SEARCH_MCP_ALLOWED_ORIGINS",

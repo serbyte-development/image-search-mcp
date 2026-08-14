@@ -7,6 +7,6 @@ lint:
 	$(PYTHON) -m pyrefly check
 
 test:
-	$(PYTHON) -m unittest -v test_manager
+	$(PYTHON) -m unittest -v test_manager test_app
 
 check: lint test

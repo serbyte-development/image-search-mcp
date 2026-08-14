@@ -22,27 +22,32 @@ Use it as an **Unsplash MCP server**, **Pexels MCP server**, **Pixabay MCP serve
 - Normalize results into one consistent image schema
 - Fetch detailed metadata for individual images
 - Download images or return base64 image data
-- Run locally over MCP or deploy with Streamable HTTP
+- Run locally over stdio or deploy with Streamable HTTP
 - Fail clearly when a requested provider is invalid or not configured
 
 ## Getting Started
 
-### Have an AI agent install it
+### Have an AI agent install and connect it
 
-Give your coding agent or AI assistant this install skill and let it configure the MCP for you:
+Copy the short setup prompt from [`docs/agent-setup-prompt.md`](docs/agent-setup-prompt.md) into your coding agent or AI assistant.
 
-[`skills/install-mcp/SKILL.md`](skills/install-mcp/SKILL.md)
+For agents that support reusable skills, the full install workflow is also available at [`skills/install-mcp/SKILL.md`](skills/install-mcp/SKILL.md).
 
-### 1. Clone and install
+### 1. Install locally
+
+One command with `pipx`:
 
 ```bash
-git clone https://github.com/Serbyte-Development/image-search-mcp.git
-cd image-search-mcp
-
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+pipx install git+https://github.com/Serbyte-Development/image-search-mcp.git
 ```
+
+After the Homebrew formula is published, macOS/Linux users can instead install with:
+
+```bash
+brew install Serbyte-Development/tap/image-search-mcp
+```
+
+Both install the `image-search-mcp` command.
 
 ### 2. Get provider API keys
 
@@ -68,10 +73,7 @@ You only need keys for the providers you want to use.
 {
   "mcpServers": {
     "image-search": {
-      "command": "/absolute/path/to/image-search-mcp/.venv/bin/python",
-      "args": [
-        "/absolute/path/to/image-search-mcp/image_search_mcp.py"
-      ],
+      "command": "image-search-mcp",
       "env": {
         "PEXELS_API_KEY": "your_pexels_key",
         "UNSPLASH_ACCESS_KEY": "your_unsplash_key",
@@ -83,6 +85,8 @@ You only need keys for the providers you want to use.
 ```
 
 Restart your MCP client after saving the configuration.
+
+Local installs use **stdio**. Provider keys belong in the MCP client's environment configuration, not in the package manager or repository.
 
 ## MCP Tools
 
@@ -140,13 +144,7 @@ Search results are normalized across providers and include fields such as:
 
 ## Run from the CLI
 
-Install the local command:
-
-```bash
-pip install -e .
-```
-
-Then run:
+After installing, run:
 
 ```bash
 image-search-mcp
@@ -156,7 +154,21 @@ image-search-mcp
 
 `app.py` exposes a stateless Streamable HTTP MCP endpoint suitable for Vercel.
 
-Set your provider API keys in the deployment environment, deploy the repository, then connect MCP clients to:
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FSerbyte-Development%2Fimage-search-mcp&project-name=image-search-mcp)
+
+This creates the user's own deployment from the public repository. It does not connect to or reuse the maintainer's private deployment.
+
+After deployment, add one or more provider keys as Vercel environment variables:
+
+```text
+PEXELS_API_KEY
+UNSPLASH_ACCESS_KEY
+PIXABAY_API_KEY
+```
+
+The deployment automatically uses Vercel's generated host environment variables for MCP host validation when those system variables are exposed. If you disable Vercel system environment variables or attach a custom domain, set `IMAGE_SEARCH_MCP_ALLOWED_HOSTS` to the host(s) you serve.
+
+Then connect MCP clients to:
 
 ```text
 https://your-project.vercel.app/mcp
