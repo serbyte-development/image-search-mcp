@@ -36,7 +36,7 @@ classifiers = [
 ]
 dependencies = [
     "mcp>=2.0.0,<3.0.0",
-    "pycurl>=7.45.0",
+    "pycurl>=7.47.0",
 ]
 
 [project.scripts]
