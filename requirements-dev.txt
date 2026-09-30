@@ -2,4 +2,4 @@
 python-dotenv>=1.0.0
 flake8>=7.0.0
 pyrefly>=1.0.0
-types-pycurl>=7.46.0.20260509
+types-pycurl>=7.47.0.20260703
