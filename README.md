@@ -176,6 +176,11 @@ Then connect MCP clients to:
 https://your-project.vercel.app/mcp
 ```
 
+Vercel also serves the MCP server icons from `public/icon.png` and
+`public/icon.webp`. Their URLs are advertised in the MCP initialization
+response; self-hosted Vercel deployments use `VERCEL_PROJECT_PRODUCTION_URL`
+when available.
+
 The example deployment does not add authentication. If you expose an MCP endpoint publicly, add appropriate access controls or expect requests to consume your provider API quotas.
 
 Optional transport security settings:

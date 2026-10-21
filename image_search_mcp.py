@@ -22,6 +22,7 @@ import json
 
 try:
     from mcp.server import MCPServer
+    from mcp.types import Icon
 except ImportError:
     print("Error: MCP package not found. Please install it with: "
           "pip install mcp")
@@ -41,6 +42,18 @@ USER_AGENT = (
     "(+https://github.com/Serbyte-Development/image-search-mcp)"
 )
 SUPPORTED_PROVIDERS = ("pexels", "unsplash", "pixabay")
+
+
+def _server_icons() -> list[Icon]:
+    """Publish icons hosted by this Vercel deployment (or the public default)."""
+    host = os.getenv("VERCEL_PROJECT_PRODUCTION_URL") or "stocky-mcp.vercel.app"
+    base_url = f"https://{host.rstrip('/')}"
+    return [
+        Icon(src=f"{base_url}/icon.png", mime_type="image/png", sizes=["128x128"]),
+        Icon(src=f"{base_url}/icon.webp", mime_type="image/webp", sizes=["128x128"]),
+    ]
+
+
 HTTP_CONNECT_TIMEOUT_SECONDS = 5
 HTTP_TIMEOUT_SECONDS = 20
 
@@ -841,7 +854,7 @@ class ImageSearchServer:
     """Main MCP server for stock image searching."""
 
     def __init__(self):
-        self.mcp = MCPServer("image-search")
+        self.mcp = MCPServer("image-search", icons=_server_icons())
         self.manager = StockImageManager()
         self._setup_tools()
         self._setup_resources()

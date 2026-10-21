@@ -3,6 +3,18 @@
   "name": "io.github.serbyte-development/image-search-mcp",
   "title": "Image Search MCP",
   "description": "Search Unsplash, Pexels, and Pixabay from one MCP server.",
+  "icons": [
+    {
+      "src": "https://stocky-mcp.vercel.app/icon.png",
+      "mimeType": "image/png",
+      "sizes": ["128x128"]
+    },
+    {
+      "src": "https://stocky-mcp.vercel.app/icon.webp",
+      "mimeType": "image/webp",
+      "sizes": ["128x128"]
+    }
+  ],
   "repository": {
     "url": "https://github.com/serbyte-development/image-search-mcp",
     "source": "github"
